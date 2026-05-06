@@ -1,0 +1,4 @@
+# Copy this file to terraform.tfvars and fill in your own values.
+# terraform.tfvars is gitignored and should NEVER be committed.
+
+bucket_suffix = "your-unique-suffix-here"  # e.g. "ake-2026-05" — must be globally unique
