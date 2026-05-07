@@ -3,6 +3,7 @@
 # ============================================
 resource "aws_s3_bucket" "raw" {
   bucket = "${var.project_name}-raw-${var.bucket_suffix}"
+  force_destroy = true  # dev environment only - never in prod
 }
 
 resource "aws_s3_bucket_versioning" "raw" {
@@ -36,6 +37,7 @@ resource "aws_s3_bucket_public_access_block" "raw" {
 # ============================================
 resource "aws_s3_bucket" "curated" {
   bucket = "${var.project_name}-curated-${var.bucket_suffix}"
+  force_destroy = true  # dev environment only - never in prod
 }
 
 resource "aws_s3_bucket_versioning" "curated" {
