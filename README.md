@@ -90,10 +90,50 @@ terraform destroy
 - ✅ No credentials in code (`.tfvars` gitignored)
 - ✅ Least-privilege IAM policies (planned)
 
+## 💻 Usage
+
+### Setup
+
+```bash
+# Activate virtualenv (Windows PowerShell)
+.\.venv\Scripts\Activate.ps1
+# (Linux/Mac)
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env  # then edit .env with your bucket names
+```
+
+### Ingest NYC Taxi data
+
+```bash
+# Single month
+python scripts/upload_to_s3.py --year 2024 --months 1
+
+# Multiple months
+python scripts/upload_to_s3.py --year 2024 --months 1 2 3
+
+# Different taxi type
+python scripts/upload_to_s3.py --taxi-type green --year 2024 --months 1
+```
+
+Data lands in S3 with **Hive-style partitioning** for native Glue/Athena partition discovery:
+
+```
+s3://<raw-bucket>/
+└── taxi_type=yellow/
+    └── year=2024/
+        └── month=01/
+            └── yellow_tripdata_2024-01.parquet
+```
+
 ## 🗺️ Roadmap
 
 - [x] **Phase 1** — Bootstrap S3 buckets (raw + curated) with Terraform
-- [ ] **Phase 2** — Ingest NYC Taxi data via Python + boto3
+- [x] **Phase 2** — Ingest NYC Taxi data via Python + boto3
 - [ ] **Phase 3** — Glue Crawler + Data Catalog
 - [ ] **Phase 4** — Glue ETL job: CSV → partitioned Parquet
 - [ ] **Phase 5** — Athena queries + sample analytics

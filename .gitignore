@@ -53,8 +53,10 @@ data/
 # Python
 __pycache__/
 *.pyc
-venv/
+
+# Python virtualenv
 .venv/
+venv/
 
 # AWS
 .aws/
@@ -63,3 +65,5 @@ venv/
 .vscode/
 .idea/
 
+# Environment variables
+.env
