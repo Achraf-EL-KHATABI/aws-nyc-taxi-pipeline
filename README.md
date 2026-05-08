@@ -130,13 +130,45 @@ s3://<raw-bucket>/
             └── yellow_tripdata_2024-01.parquet
 ```
 
+### Catalog data with Glue Crawler
+
+```bash
+aws glue start-crawler --name nyc-taxi-pipeline-raw-crawler --region eu-west-3
+```
+
+Wait until state is `READY`:
+```bash
+aws glue get-crawler --name nyc-taxi-pipeline-raw-crawler --region eu-west-3 --query "Crawler.State"
+```
+
+### Query data with Athena
+
+Sample SQL queries are available in [`sql/`](sql/). Run them via the Athena console (workgroup: `nyc-taxi-pipeline-workgroup`) or with the AWS CLI.
+
+**Example — multi-month aggregation:**
+```sql
+SELECT year, month, COUNT(*) AS trips, ROUND(SUM(total_amount), 2) AS revenue_usd
+FROM nyc_taxi_pipeline_raw_ake_2026_05
+WHERE taxi_type = 'yellow'
+GROUP BY year, month
+ORDER BY year, month;
+```
+
+Sample output (Jan-Mar 2024 yellow taxi data):
+
+| year | month | trips | revenue_usd |
+|------|-------|-----------|-------------|
+| 2024 | 01    | 2,964,624 | 79,456,384  |
+| 2024 | 02    | 3,007,526 | 80,073,615  |
+| 2024 | 03    | 3,582,628 | 97,162,914  |
+
 ## 🗺️ Roadmap
 
 - [x] **Phase 1** — Bootstrap S3 buckets (raw + curated) with Terraform
 - [x] **Phase 2** — Ingest NYC Taxi data via Python + boto3
-- [ ] **Phase 3** — Glue Crawler + Data Catalog
+- [x] **Phase 3** — Glue Crawler + Data Catalog
 - [ ] **Phase 4** — Glue ETL job: CSV → partitioned Parquet
-- [ ] **Phase 5** — Athena queries + sample analytics
+- [x] **Phase 5** — Athena queries + sample analytics
 - [ ] **Phase 6** — QuickSight dashboard
 - [ ] **Phase 7** — Orchestration with Step Functions
 - [ ] **Phase 8** — CI/CD with GitHub Actions
