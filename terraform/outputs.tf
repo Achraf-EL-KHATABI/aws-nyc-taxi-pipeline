@@ -32,3 +32,18 @@ output "athena_results_bucket" {
   description = "S3 bucket where Athena query results are stored"
   value       = aws_s3_bucket.athena_results.id
 }
+
+output "glue_job_name" {
+  description = "Name of the Glue ETL job"
+  value       = aws_glue_job.transform_taxi.name
+}
+
+output "glue_assets_bucket" {
+  description = "S3 bucket holding Glue scripts and temp files"
+  value       = aws_s3_bucket.glue_assets.id
+}
+
+output "curated_crawler_name" {
+  description = "Name of the curated Glue crawler"
+  value       = aws_glue_crawler.curated_taxi.name
+}

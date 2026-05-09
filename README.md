@@ -162,12 +162,37 @@ Sample output (Jan-Mar 2024 yellow taxi data):
 | 2024 | 02    | 3,007,526 | 80,073,615  |
 | 2024 | 03    | 3,582,628 | 97,162,914  |
 
+### Run the ETL job (raw → curated)
+
+```bash
+# Start the PySpark Glue job
+aws glue start-job-run \
+  --job-name nyc-taxi-pipeline-transform-taxi \
+  --region eu-west-3
+
+# Monitor (replace <RUN_ID>)
+aws glue get-job-run \
+  --job-name nyc-taxi-pipeline-transform-taxi \
+  --run-id <RUN_ID> \
+  --region eu-west-3 \
+  --query "JobRun.JobRunState"
+
+# Once SUCCEEDED, catalog the curated layer
+aws glue start-crawler --name nyc-taxi-pipeline-curated-crawler --region eu-west-3
+```
+
+The ETL job:
+- **Filters** rows with negative durations, zero distances, invalid passenger counts
+- **Derives** analytics-ready columns: `trip_duration_minutes`, `pickup_period`, `is_weekend`, `fare_per_mile`, `tip_percentage`, date parts
+- **Writes** Snappy-compressed Parquet partitioned by `pickup_year/pickup_month/pickup_day`
+- **Bookmarks** are enabled — re-running the job won't re-process the same files
+
 ## 🗺️ Roadmap
 
 - [x] **Phase 1** — Bootstrap S3 buckets (raw + curated) with Terraform
 - [x] **Phase 2** — Ingest NYC Taxi data via Python + boto3
 - [x] **Phase 3** — Glue Crawler + Data Catalog
-- [ ] **Phase 4** — Glue ETL job: CSV → partitioned Parquet
+- [x] **Phase 4** — Glue ETL job: raw → partitioned & enriched Parquet
 - [x] **Phase 5** — Athena queries + sample analytics
 - [ ] **Phase 6** — QuickSight dashboard
 - [ ] **Phase 7** — Orchestration with Step Functions

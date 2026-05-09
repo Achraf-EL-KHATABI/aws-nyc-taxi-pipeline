@@ -40,6 +40,8 @@ data "aws_iam_policy_document" "glue_s3_access" {
     resources = [
       aws_s3_bucket.raw.arn,
       "${aws_s3_bucket.raw.arn}/*",
+      aws_s3_bucket.curated.arn,
+      "${aws_s3_bucket.curated.arn}/*",
     ]
   }
 }
