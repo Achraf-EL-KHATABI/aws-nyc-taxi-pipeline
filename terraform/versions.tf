@@ -7,6 +7,14 @@ terraform {
       version = "~> 5.70"
     }
   }
+
+  backend "s3" {
+    bucket         = "nyc-taxi-pipeline-tfstate-ake-2026-05"
+    key            = "main/terraform.tfstate"
+    region         = "eu-west-3"
+    dynamodb_table = "nyc-taxi-pipeline-tfstate-lock"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
