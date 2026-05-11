@@ -187,6 +187,26 @@ The ETL job:
 - **Writes** Snappy-compressed Parquet partitioned by `pickup_year/pickup_month/pickup_day`
 - **Bookmarks** are enabled — re-running the job won't re-process the same files
 
+## 🤖 CI/CD
+
+GitHub Actions automate Terraform validation and deployment using **OIDC** (no long-lived AWS credentials stored in GitHub).
+
+| Workflow | Trigger | Action |
+|---|---|---|
+| `terraform-pr.yml` | Pull request to `main` | `fmt`, `validate`, `plan`, comment diff on PR |
+| `terraform-main.yml` | Push to `main` | `apply` (with optional manual approval) |
+| `python-lint.yml` | PR with `.py` changes | Run `ruff check` and `ruff format --check` |
+
+### Setup
+
+The IAM role for GitHub Actions is created by Terraform (`github_oidc.tf`). After the first manual apply, set these GitHub repo variables:
+
+- `AWS_ROLE_ARN` — output `github_actions_role_arn` from Terraform
+- `AWS_REGION` — `eu-west-3`
+- `TF_BUCKET_SUFFIX` — your unique S3 bucket suffix
+
+No secrets, no access keys. Authentication uses GitHub's OIDC tokens, which AWS validates and exchanges for short-lived credentials per workflow run.
+
 ## 🗺️ Roadmap
 
 - [x] **Phase 1** — Bootstrap S3 buckets (raw + curated) with Terraform
@@ -196,7 +216,7 @@ The ETL job:
 - [x] **Phase 5** — Athena queries + sample analytics
 - [ ] **Phase 6** — QuickSight dashboard
 - [ ] **Phase 7** — Orchestration with Step Functions
-- [ ] **Phase 8** — CI/CD with GitHub Actions
+- [x] **Phase 8** — CI/CD with GitHub Actions
 - [ ] **Phase 9** — Monitoring with CloudWatch
 
 ## 📊 Dataset

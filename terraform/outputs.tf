@@ -47,3 +47,8 @@ output "curated_crawler_name" {
   description = "Name of the curated Glue crawler"
   value       = aws_glue_crawler.curated_taxi.name
 }
+
+output "github_actions_role_arn" {
+  description = "ARN of the IAM role assumed by GitHub Actions via OIDC"
+  value       = aws_iam_role.github_actions.arn
+}

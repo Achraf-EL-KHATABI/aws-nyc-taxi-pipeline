@@ -20,3 +20,15 @@ variable "bucket_suffix" {
   description = "Unique suffix for S3 bucket names (S3 names are globally unique)"
   type        = string
 }
+
+variable "github_owner" {
+  description = "GitHub username or org owning the repo"
+  type        = string
+  default     = "Achraf-EL-KHATABI"
+}
+
+variable "github_repo" {
+  description = "GitHub repository name"
+  type        = string
+  default     = "aws-nyc-taxi-pipeline"
+}

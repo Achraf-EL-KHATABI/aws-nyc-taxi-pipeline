@@ -74,7 +74,11 @@ clean_df = raw_df.toDF(*[c.lower() for c in raw_df.columns])
 # Compute trip duration in minutes (used in filters and as derived col)
 clean_df = clean_df.withColumn(
     "trip_duration_minutes",
-    (F.unix_timestamp("tpep_dropoff_datetime") - F.unix_timestamp("tpep_pickup_datetime")) / 60.0,
+    (
+        F.unix_timestamp("tpep_dropoff_datetime")
+        - F.unix_timestamp("tpep_pickup_datetime")
+    )
+    / 60.0,
 )
 
 # Filter rules — these are documented & easy to tune
@@ -84,7 +88,7 @@ quality_filters = (
     & (F.col("trip_duration_minutes") > 0)
     & (F.col("trip_duration_minutes") < 24 * 60)  # < 24h
     & (F.col("trip_distance") > 0)
-    & (F.col("trip_distance") < 200)              # < 200 miles (NYC sanity)
+    & (F.col("trip_distance") < 200)  # < 200 miles (NYC sanity)
     & (F.col("fare_amount") >= 0)
     & (F.col("total_amount") >= 0)
     & (F.col("passenger_count").isNotNull())
@@ -112,7 +116,9 @@ enriched_df = (
     .withColumn("pickup_month", F.month("tpep_pickup_datetime").cast(IntegerType()))
     .withColumn("pickup_day", F.dayofmonth("tpep_pickup_datetime").cast(IntegerType()))
     .withColumn("pickup_hour", F.hour("tpep_pickup_datetime").cast(IntegerType()))
-    .withColumn("pickup_dayofweek", F.dayofweek("tpep_pickup_datetime").cast(IntegerType()))
+    .withColumn(
+        "pickup_dayofweek", F.dayofweek("tpep_pickup_datetime").cast(IntegerType())
+    )
     # Business-friendly flags
     .withColumn(
         "is_weekend",
@@ -120,16 +126,30 @@ enriched_df = (
     )
     .withColumn(
         "pickup_period",
-        F.when((F.hour("tpep_pickup_datetime") >= 6) & (F.hour("tpep_pickup_datetime") < 12), "morning")
-         .when((F.hour("tpep_pickup_datetime") >= 12) & (F.hour("tpep_pickup_datetime") < 18), "afternoon")
-         .when((F.hour("tpep_pickup_datetime") >= 18) & (F.hour("tpep_pickup_datetime") < 22), "evening")
-         .otherwise("night"),
+        F.when(
+            (F.hour("tpep_pickup_datetime") >= 6)
+            & (F.hour("tpep_pickup_datetime") < 12),
+            "morning",
+        )
+        .when(
+            (F.hour("tpep_pickup_datetime") >= 12)
+            & (F.hour("tpep_pickup_datetime") < 18),
+            "afternoon",
+        )
+        .when(
+            (F.hour("tpep_pickup_datetime") >= 18)
+            & (F.hour("tpep_pickup_datetime") < 22),
+            "evening",
+        )
+        .otherwise("night"),
     )
     # Economic metrics
     .withColumn(
         "fare_per_mile",
-        F.when(F.col("trip_distance") > 0, F.round(F.col("fare_amount") / F.col("trip_distance"), 2))
-         .otherwise(None),
+        F.when(
+            F.col("trip_distance") > 0,
+            F.round(F.col("fare_amount") / F.col("trip_distance"), 2),
+        ).otherwise(None),
     )
     .withColumn(
         "tip_percentage",
@@ -147,10 +167,8 @@ output_path = f"s3://{args['curated_bucket']}/{args['curated_path']}/"
 logger.info(f"Writing to {output_path}")
 
 (
-    enriched_df
-    .repartition("pickup_year", "pickup_month", "pickup_day")
-    .write
-    .mode("append")
+    enriched_df.repartition("pickup_year", "pickup_month", "pickup_day")
+    .write.mode("append")
     .partitionBy("pickup_year", "pickup_month", "pickup_day")
     .option("compression", "snappy")
     .parquet(output_path)

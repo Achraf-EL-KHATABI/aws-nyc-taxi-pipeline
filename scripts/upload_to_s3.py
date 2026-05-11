@@ -142,9 +142,7 @@ def parse_args():
         default="yellow",
         help="Taxi type (default: yellow)",
     )
-    parser.add_argument(
-        "--year", type=int, required=True, help="Year (e.g., 2024)"
-    )
+    parser.add_argument("--year", type=int, required=True, help="Year (e.g., 2024)")
     parser.add_argument(
         "--months",
         type=int,
