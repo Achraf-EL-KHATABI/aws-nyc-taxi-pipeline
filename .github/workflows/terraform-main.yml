@@ -41,7 +41,10 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Apply
+      - name: Terraform Plan
         run: |
-          terraform apply -auto-approve -input=false \
+          terraform plan -out=tfplan -input=false \
             -var="bucket_suffix=${{ vars.TF_BUCKET_SUFFIX }}"
+
+      - name: Terraform Apply
+        run: terraform apply -input=false tfplan
