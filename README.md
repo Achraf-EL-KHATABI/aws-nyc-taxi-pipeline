@@ -1,4 +1,6 @@
 # 🚕 AWS NYC Taxi Data Pipeline
+[![Terraform Apply](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/terraform-main.yml/badge.svg)](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/terraform-main.yml)
+[![Python Lint](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/python-lint.yml/badge.svg)](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/python-lint.yml)
 
 End-to-end data engineering pipeline on AWS, processing the public NYC Taxi dataset using modern best practices: Infrastructure as Code, partitioned data lake, serverless analytics.
 
@@ -186,6 +188,19 @@ The ETL job:
 - **Derives** analytics-ready columns: `trip_duration_minutes`, `pickup_period`, `is_weekend`, `fare_per_mile`, `tip_percentage`, date parts
 - **Writes** Snappy-compressed Parquet partitioned by `pickup_year/pickup_month/pickup_day`
 - **Bookmarks** are enabled — re-running the job won't re-process the same files
+
+## 🗄️ State Management
+
+Terraform state is stored remotely in S3 with DynamoDB locking, enabling safe collaborative & CI/CD workflows. The backend infrastructure lives in a separate root module (`terraform-bootstrap/`) that's deployed once and rarely touched.
+
+```
+terraform-bootstrap/   ← runs once: creates state bucket + lock table
+terraform/             ← main infrastructure, uses the bootstrap backend
+```
+
+- **State bucket**: versioning + encryption + `prevent_destroy` lifecycle
+- **Lock table**: DynamoDB PAY_PER_REQUEST with point-in-time recovery
+- **Pattern**: bootstrap stack avoids the chicken-and-egg of "the backend storing its own creation"
 
 ## 🤖 CI/CD
 
