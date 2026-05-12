@@ -52,3 +52,13 @@ output "github_actions_role_arn" {
   description = "ARN of the IAM role assumed by GitHub Actions via OIDC"
   value       = aws_iam_role.github_actions.arn
 }
+
+output "state_machine_arn" {
+  description = "ARN of the Step Functions state machine"
+  value       = aws_sfn_state_machine.taxi_pipeline.arn
+}
+
+output "sns_topic_arn" {
+  description = "ARN of the SNS topic for pipeline notifications"
+  value       = aws_sns_topic.pipeline_notifications.arn
+}

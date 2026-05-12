@@ -2,3 +2,5 @@
 # terraform.tfvars is gitignored and should NEVER be committed.
 
 bucket_suffix = "your-unique-suffix-here"  # e.g. "ake-2026-05" — must be globally unique
+
+notification_email = "your-email@example.com"

@@ -32,3 +32,8 @@ variable "github_repo" {
   type        = string
   default     = "aws-nyc-taxi-pipeline"
 }
+
+variable "notification_email" {
+  description = "Email address for pipeline notifications"
+  type        = string
+}
