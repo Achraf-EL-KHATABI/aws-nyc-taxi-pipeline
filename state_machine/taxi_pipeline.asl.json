@@ -1,0 +1,188 @@
+{
+  "Comment": "NYC Taxi Pipeline: catalog raw → ETL → catalog curated → notify",
+  "StartAt": "StartRawCrawler",
+  "States": {
+    "StartRawCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "${raw_crawler_name}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": ["Glue.CrawlerRunningException"],
+          "Next": "WaitForRawCrawler",
+          "Comment": "Crawler already running, just wait for it"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "WaitForRawCrawler"
+    },
+
+    "WaitForRawCrawler": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "CheckRawCrawlerStatus"
+    },
+
+    "CheckRawCrawlerStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getCrawler",
+      "Parameters": {
+        "Name": "${raw_crawler_name}"
+      },
+      "ResultPath": "$.crawlerStatus",
+      "Next": "IsRawCrawlerDone",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "IsRawCrawlerDone": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.crawlerStatus.Crawler.State",
+          "StringEquals": "READY",
+          "Next": "RunGlueETLJob"
+        },
+        {
+          "Variable": "$.crawlerStatus.Crawler.State",
+          "StringEquals": "RUNNING",
+          "Next": "WaitForRawCrawler"
+        },
+        {
+          "Variable": "$.crawlerStatus.Crawler.State",
+          "StringEquals": "STOPPING",
+          "Next": "WaitForRawCrawler"
+        }
+      ],
+      "Default": "NotifyFailure"
+    },
+
+    "RunGlueETLJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${glue_job_name}"
+      },
+      "ResultPath": "$.etlResult",
+      "Retry": [
+        {
+          "ErrorEquals": ["Glue.ConcurrentRunsExceededException"],
+          "IntervalSeconds": 60,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "StartCuratedCrawler"
+    },
+
+    "StartCuratedCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "${curated_crawler_name}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": ["Glue.CrawlerRunningException"],
+          "Next": "WaitForCuratedCrawler"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "WaitForCuratedCrawler"
+    },
+
+    "WaitForCuratedCrawler": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "CheckCuratedCrawlerStatus"
+    },
+
+    "CheckCuratedCrawlerStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getCrawler",
+      "Parameters": {
+        "Name": "${curated_crawler_name}"
+      },
+      "ResultPath": "$.crawlerStatus",
+      "Next": "IsCuratedCrawlerDone",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ]
+    },
+
+    "IsCuratedCrawlerDone": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.crawlerStatus.Crawler.State",
+          "StringEquals": "READY",
+          "Next": "NotifySuccess"
+        },
+        {
+          "Variable": "$.crawlerStatus.Crawler.State",
+          "StringEquals": "RUNNING",
+          "Next": "WaitForCuratedCrawler"
+        },
+        {
+          "Variable": "$.crawlerStatus.Crawler.State",
+          "StringEquals": "STOPPING",
+          "Next": "WaitForCuratedCrawler"
+        }
+      ],
+      "Default": "NotifyFailure"
+    },
+
+    "NotifySuccess": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${sns_topic_arn}",
+        "Subject": "NYC Taxi Pipeline — SUCCESS",
+        "Message.$": "States.Format('Pipeline completed successfully at {}. Execution: {}', $$.Execution.StartTime, $$.Execution.Name)"
+      },
+      "End": true
+    },
+
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${sns_topic_arn}",
+        "Subject": "NYC Taxi Pipeline — FAILURE",
+        "Message.$": "States.Format('Pipeline failed. Execution: {}. Error: {}', $$.Execution.Name, $.error)"
+      },
+      "Next": "FailState"
+    },
+
+    "FailState": {
+      "Type": "Fail",
+      "Cause": "Pipeline failed"
+    }
+  }
+}

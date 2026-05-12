@@ -202,6 +202,38 @@ terraform/             ← main infrastructure, uses the bootstrap backend
 - **Lock table**: DynamoDB PAY_PER_REQUEST with point-in-time recovery
 - **Pattern**: bootstrap stack avoids the chicken-and-egg of "the backend storing its own creation"
 
+## 🎼 Orchestration
+
+The full pipeline is orchestrated by an **AWS Step Functions** state machine that chains all the data engineering steps with retries, error handling, and notifications:
+
+```
+Start Raw Crawler → Wait for READY → Run Glue ETL Job → Start Curated Crawler → Wait for READY → Notify (SNS)
+```
+
+Key features:
+- **Polling loops** with `Wait` + `Choice` states for crawler completion
+- **Native sync integration** for Glue job (`startJobRun.sync` — no manual polling needed)
+- **Retry policies** with exponential backoff on transient errors
+- **Catch handlers** routing all failures to a single notification state
+- **CloudWatch logging** of execution history
+- **EventBridge Scheduler** for daily automated runs (currently disabled — enable in `step_functions.tf`)
+- **SNS topic** for success/failure notifications
+
+### Trigger manually
+
+```bash
+aws stepfunctions start-execution \
+  --state-machine-arn $(aws stepfunctions list-state-machines \
+    --query "stateMachines[?name=='nyc-taxi-pipeline-pipeline'].stateMachineArn" \
+    --output text) \
+  --region eu-west-3 \
+  --input '{}'
+```
+
+### State machine definition
+
+The full Amazon States Language definition is in [`state_machine/taxi_pipeline.asl.json`](state_machine/taxi_pipeline.asl.json), templated by Terraform with the actual resource names.
+
 ## 🤖 CI/CD
 
 GitHub Actions automate Terraform validation and deployment using **OIDC** (no long-lived AWS credentials stored in GitHub).
@@ -230,7 +262,7 @@ No secrets, no access keys. Authentication uses GitHub's OIDC tokens, which AWS 
 - [x] **Phase 4** — Glue ETL job: raw → partitioned & enriched Parquet
 - [x] **Phase 5** — Athena queries + sample analytics
 - [ ] **Phase 6** — QuickSight dashboard
-- [ ] **Phase 7** — Orchestration with Step Functions
+- [x] **Phase 7** — Orchestration with Step Functions
 - [x] **Phase 8** — CI/CD with GitHub Actions
 - [ ] **Phase 9** — Monitoring with CloudWatch
 

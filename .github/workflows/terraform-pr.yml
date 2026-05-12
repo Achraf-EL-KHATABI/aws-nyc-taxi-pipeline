@@ -52,6 +52,7 @@ jobs:
         run: |
           terraform plan -no-color -input=false \
             -var="bucket_suffix=${{ vars.TF_BUCKET_SUFFIX }}" \
+            -var="notification_email=${{ vars.NOTIFICATION_EMAIL }}" \
             -out=tfplan
         continue-on-error: true
 
