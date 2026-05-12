@@ -114,7 +114,7 @@ resource "aws_glue_job" "transform_taxi" {
     "--enable-job-insights"              = "true"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
-    "--job-bookmark-option"              = "job-bookmark-enable"
+    "--job-bookmark-option"              = "job-bookmark-disable"
     "--TempDir"                          = "s3://${aws_s3_bucket.glue_assets.id}/tmp/"
 
     # Custom job arguments (consumed in PySpark via getResolvedOptions)
