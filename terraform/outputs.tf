@@ -62,3 +62,13 @@ output "sns_topic_arn" {
   description = "ARN of the SNS topic for pipeline notifications"
   value       = aws_sns_topic.pipeline_notifications.arn
 }
+
+output "quicksight_workgroup" {
+  description = "Athena workgroup used by QuickSight"
+  value       = aws_athena_workgroup.quicksight.name
+}
+
+output "quicksight_data_source_id" {
+  description = "QuickSight data source ID for Athena"
+  value       = aws_quicksight_data_source.athena.data_source_id
+}
