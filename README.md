@@ -234,6 +234,54 @@ aws stepfunctions start-execution \
 
 The full Amazon States Language definition is in [`state_machine/taxi_pipeline.asl.json`](state_machine/taxi_pipeline.asl.json), templated by Terraform with the actual resource names.
 
+## 📊 BI Dashboard (QuickSight)
+
+The curated layer feeds an interactive Amazon QuickSight dashboard for business analytics — the visible end of the pipeline.
+
+![Dashboard Overview](docs/screenshots/dashboard_overview.png)
+
+### Built on the curated layer
+
+The dashboard queries the `yellow_taxi` Glue catalog table directly via Athena, with no data movement — every visual reflects the latest output of the ETL pipeline.
+
+**Key metrics (Jan–Mar 2024, post-quality-filter):**
+- **8.48 M** total trips
+- **$18.68** average fare
+- Hourly demand curve, daily seasonality, weekend vs weekday patterns
+
+### Visualizations
+
+| Visual | Type | Insight |
+|---|---|---|
+| Total Trips | KPI | Headline volume |
+| Average Fare | KPI | Economic signal |
+| Trips by Hour of Day | Bar chart | Peak demand profile |
+| Daily Trip Volume | Line chart | Weekly seasonality, outliers |
+| Pickup Period | Donut | Morning/afternoon/evening/night split |
+| Weekend vs Weekday | Bar chart | Fare behavior comparison |
+
+### Architecture choice — Direct Query (no SPICE)
+
+The dataset uses **Direct Query** mode rather than QuickSight's SPICE in-memory cache. Trade-off:
+- ✅ Always fresh — reflects every pipeline run immediately
+- ✅ No duplicated storage cost
+- ❌ Slightly higher per-visual latency (~3-5 s vs <1 s)
+
+For larger workloads or executive dashboards with many concurrent readers, SPICE would be the right call.
+
+### IaC vs UI boundaries
+
+QuickSight is intentionally UI-driven for visualization design — Terraform (`quicksight.tf`) provisions:
+- A dedicated Athena workgroup `nyc-taxi-pipeline-quicksight` (cost & monitoring isolation)
+- The Athena data source connection with author-level permissions
+- A scoped IAM permission set
+
+The dataset, analysis, and dashboard are created via the QuickSight console — this is the documented AWS pattern as of 2026. Setup is reproducible in ~10 minutes following the steps in [docs/quicksight-setup.md](docs/quicksight-setup.md).
+
+### Data quality observation
+
+While building the dashboard, I noticed a few records with pickup dates outside the partition year (e.g. `2009-01-01` in a `year=2024` partition). This is a known upstream quirk of the NYC TLC public dataset — a tiny fraction (~0.001%) of records have malformed timestamps. The dashboard applies a date filter to scope visualizations to 2024 only. This is a good candidate for a future Great Expectations validation step in the ETL job.
+
 ## 🤖 CI/CD
 
 GitHub Actions automate Terraform validation and deployment using **OIDC** (no long-lived AWS credentials stored in GitHub).
@@ -261,7 +309,7 @@ No secrets, no access keys. Authentication uses GitHub's OIDC tokens, which AWS 
 - [x] **Phase 3** — Glue Crawler + Data Catalog
 - [x] **Phase 4** — Glue ETL job: raw → partitioned & enriched Parquet
 - [x] **Phase 5** — Athena queries + sample analytics
-- [ ] **Phase 6** — QuickSight dashboard
+- [x] **Phase 6** — QuickSight Dashboard
 - [x] **Phase 7** — Orchestration with Step Functions
 - [x] **Phase 8** — CI/CD with GitHub Actions
 - [ ] **Phase 9** — Monitoring with CloudWatch
