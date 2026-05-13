@@ -37,3 +37,8 @@ variable "notification_email" {
   description = "Email address for pipeline notifications"
   type        = string
 }
+
+variable "quicksight_username" {
+  description = "QuickSight username (visible in QuickSight → Manage users)"
+  type        = string
+}

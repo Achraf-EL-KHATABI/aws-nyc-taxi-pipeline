@@ -45,7 +45,8 @@ jobs:
         run: |
           terraform plan -out=tfplan -input=false \
             -var="bucket_suffix=${{ vars.TF_BUCKET_SUFFIX }}" \
-            -var="notification_email=${{ vars.NOTIFICATION_EMAIL }}"
+            -var="notification_email=${{ vars.NOTIFICATION_EMAIL }}"\
+            -var="quicksight_username=${{ vars.QUICKSIGHT_USERNAME }}"
 
       - name: Terraform Apply
         run: terraform apply -input=false tfplan
