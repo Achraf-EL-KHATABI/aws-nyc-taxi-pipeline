@@ -1,6 +1,7 @@
 # 🚕 AWS NYC Taxi Data Pipeline
 [![Terraform Apply](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/terraform-main.yml/badge.svg)](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/terraform-main.yml)
 [![Python Lint](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/python-lint.yml/badge.svg)](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/python-lint.yml)
+[![Python Tests](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/python-test.yml/badge.svg)](https://github.com/Achraf-EL-KHATABI/aws-nyc-taxi-pipeline/actions/workflows/python-test.yml)
 
 End-to-end data engineering pipeline on AWS, processing the public NYC Taxi dataset using modern best practices: Infrastructure as Code, partitioned data lake, serverless analytics.
 
@@ -282,6 +283,38 @@ The dataset, analysis, and dashboard are created via the QuickSight console — 
 
 While building the dashboard, I noticed a few records with pickup dates outside the partition year (e.g. `2009-01-01` in a `year=2024` partition). This is a known upstream quirk of the NYC TLC public dataset — a tiny fraction (~0.001%) of records have malformed timestamps. The dashboard applies a date filter to scope visualizations to 2024 only. This is a good candidate for a future Great Expectations validation step in the ETL job.
 
+## 🧪 Testing & Data Quality
+
+The pipeline has **two complementary layers** of automated validation:
+
+### Layer 1: Code Tests (pytest)
+
+Unit tests on the Python scripts using `pytest`, `pytest-mock`, and `pytest-cov`. Currently **16 tests** covering CLI argument parsing, S3 path construction with Hive partitioning, download/upload error handling, and end-to-end ingestion logic. Coverage on `upload_to_s3.py` is approximately 80%.
+
+Tests run automatically on every PR via the [Python Tests workflow](.github/workflows/python-test.yml).
+
+```bash
+pytest tests/ -v
+```
+
+### Layer 2: Data Quality (Great Expectations)
+
+Code tests verify the **code**. Data quality validations verify the **data flowing through it**.
+
+The `data_quality/` module defines 16 explicit contracts on the curated layer, covering schema, completeness, business rules, categorical consistency, temporal sanity, and volume bounds. See [`data_quality/README.md`](data_quality/README.md) for the full list.
+
+```bash
+python data_quality/validate_curated.py --layer curated --max-files 10
+```
+
+**Real-world catch**: this suite detected that ~0.0001% of NYC TLC records have malformed timestamps (years like 2002 or 2009 mixed into 2024 batches). Without this validation, those records would silently corrupt BI dashboards.
+
+![Great Expectations run](docs/screenshots/great_expectations_run.png)
+
+### Philosophy
+
+Tests catch coding mistakes. Data quality validations catch reality mistakes — upstream data drifts, malformed records, business rule violations. A mature data pipeline needs both.
+
 ## 🤖 CI/CD
 
 GitHub Actions automate Terraform validation and deployment using **OIDC** (no long-lived AWS credentials stored in GitHub).
@@ -312,7 +345,8 @@ No secrets, no access keys. Authentication uses GitHub's OIDC tokens, which AWS 
 - [x] **Phase 6** — QuickSight Dashboard
 - [x] **Phase 7** — Orchestration with Step Functions
 - [x] **Phase 8** — CI/CD with GitHub Actions
-- [ ] **Phase 9** — Monitoring with CloudWatch
+- [x] **Phase 9** — Tests & Data Quality
+- [ ] **Phase 10** — Monitoring with CloudWatch
 
 ## 📊 Dataset
 
