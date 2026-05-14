@@ -68,3 +68,14 @@ venv/
 *.tfstate
 *.tfstate.*
 *.tfstate.backup
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
